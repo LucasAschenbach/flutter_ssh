@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -142,12 +143,18 @@ public class SshPlugin implements MethodCallHandler, StreamHandler {
       connectToHost((HashMap) call.arguments, result);
     } else if (call.method.equals("execute")) {
       execute((HashMap) call.arguments, result);
+    } else if (call.method.equals("getPortForwardsL")) {
+      getPortForwardsL((HashMap) call.arguments, result);
     } else if (call.method.equals("portForwardL")) {
       portForwardL((HashMap) call.arguments, result);
+    } else if (call.method.equals("delPortForwardL")) {
+      delPortForwardL((HashMap) call.arguments, result);
     } else if (call.method.equals("startShell")) {
       startShell((HashMap) call.arguments, result);
     } else if (call.method.equals("writeToShell")) {
       writeToShell((HashMap) call.arguments, result);
+    } else if (call.method.equals("sendSignal")) {
+      sendSignal((HashMap) call.arguments, result);
     } else if (call.method.equals("closeShell")) {
       closeShell((HashMap) call.arguments);
     } else if (call.method.equals("connectSFTP")) {
@@ -295,6 +302,26 @@ public class SshPlugin implements MethodCallHandler, StreamHandler {
     }).start();
   }
   
+  private void getPortForwardsL(final HashMap args, final Result result) {
+    new Thread(new Runnable()  {
+      public void run() {
+        try {
+          SSHClient client = getClient(args.get("id").toString(), result);
+          if (client == null)
+            return;
+          
+          Session session = client._session;
+          String[] forwarded_ports = session.getPortForwardingL();
+          
+          result.success(new ArrayList<String>(Arrays.asList(forwarded_ports)));
+        } catch (JSchException error) {
+          Log.e(LOGTAG, "Error getting local port forwards:" + error.getMessage());
+          result.error("getPortForwardsL_failure", error.getMessage(), null);
+        }
+      }
+    }).start();
+  }
+  
   private void portForwardL(final HashMap args, final Result result) {
     new Thread(new Runnable()  {
       public void run() {
@@ -307,12 +334,33 @@ public class SshPlugin implements MethodCallHandler, StreamHandler {
           int rport = Integer.parseInt(args.get("rport").toString());
           int lport = Integer.parseInt(args.get("lport").toString());
           String rhost = args.get("rhost").toString();
-          int assinged_port=session.setPortForwardingL(lport, rhost, rport);
+          int assinged_port = session.setPortForwardingL(lport, rhost, rport);
           
           result.success(Integer.toString(assinged_port));
         } catch (JSchException error) {
-          Log.e(LOGTAG, "Error connecting portforwardL:" + error.getMessage());
-          result.error("portforwardL_failure", error.getMessage(), null);
+          Log.e(LOGTAG, "Error forwarding local port:" + error.getMessage());
+          result.error("portForwardL_failure", error.getMessage(), null);
+        }
+      }
+    }).start();
+  }
+  
+  private void delPortForwardL(final HashMap args, final Result result) {
+    new Thread(new Runnable()  {
+      public void run() {
+        try {
+          SSHClient client = getClient(args.get("id").toString(), result);
+          if (client == null)
+            return;
+
+          Session session = client._session;
+          int lport = Integer.parseInt(args.get("lport").toString());
+          session.delPortForwardingL(lport);
+          
+          result.success("forward_deleted");
+        } catch (JSchException error) {
+          Log.e(LOGTAG, "Error deleting local port forward:" + error.getMessage());
+          result.error("delPortForwardL_failure", error.getMessage(), null);
         }
       }
     }).start();
@@ -372,6 +420,26 @@ public class SshPlugin implements MethodCallHandler, StreamHandler {
         } catch (IOException error) {
           Log.e(LOGTAG, "Error writing to shell:" + error.getMessage());
           result.error("write_failure", error.getMessage(), null);
+        }
+      }
+    }).start();
+  }
+
+  private void sendSignal(final HashMap args, final Result result) {
+    new Thread(new Runnable()  {
+      public void run() {
+        try {
+          SSHClient client = getClient(args.get("id").toString(), result);
+          if (client == null)
+            return;
+
+          String signal = args.get("signal").toString();
+          client._channel.sendSignal(signal);
+
+          result.success("signal_sent");
+        } catch (Exception error) {
+          Log.e(LOGTAG, "Error writing to shell:" + error.getMessage());
+          result.error("sendSignal_failure", error.getMessage(), null);
         }
       }
     }).start();
@@ -607,9 +675,9 @@ public class SshPlugin implements MethodCallHandler, StreamHandler {
   private void isConnected(final HashMap args, final Result result) {
     SSHClient client = clientPool.get(args.get("id"));
     if (client == null) {
-		result.success("false");
+		  result.success("false");
     } else if ( client._session == null || ! client._session.isConnected()) {
-		result.success("false");
+		  result.success("false");
     } else {
       result.success("true");
     }   

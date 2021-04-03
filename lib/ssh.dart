@@ -77,6 +77,14 @@ class SSHClient {
     });
     return result;
   }
+
+  // TODO: implement platform methods
+  Future<List<String>> getPortForwardsL() async {
+    var result = await _channel.invokeMethod('getPortForwardsL', {
+      "id": id,
+    });
+    return List<String>.from(result);
+  }
   
   Future<String> portForwardL(int rport, int lport, String rhost) async {
     var result = await _channel.invokeMethod('portForwardL', {
@@ -84,6 +92,15 @@ class SSHClient {
       "rhost": rhost,
       "rport": rport,
       "lport": lport
+    });
+    return result;
+  }
+
+  // TODO: implement platform methods
+  Future<String> delPortForwardL(int lport) async {
+    var result = await _channel.invokeMethod('delPortForwardL', {
+      "id": id,
+      "lport": lport,
     });
     return result;
   }
@@ -96,6 +113,15 @@ class SSHClient {
     var result = await _channel.invokeMethod('startShell', {
       "id": id,
       "ptyType": ptyType,
+    });
+    return result;
+  }
+
+  // TODO: implement platform methods
+  Future<String> sendSignal(String signal) async {
+    var result = await _channel.invokeMethod('sendSignal', {
+      "id": id,
+      "signal": signal,
     });
     return result;
   }
