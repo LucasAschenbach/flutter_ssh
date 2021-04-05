@@ -78,7 +78,6 @@ class SSHClient {
     return result;
   }
 
-  // TODO: implement platform methods
   Future<List<String>> getPortForwardsL() async {
     var result = await _channel.invokeMethod('getPortForwardsL', {
       "id": id,
@@ -96,7 +95,6 @@ class SSHClient {
     return result;
   }
 
-  // TODO: implement platform methods
   Future<String> delPortForwardL(int lport) async {
     var result = await _channel.invokeMethod('delPortForwardL', {
       "id": id,
@@ -117,7 +115,6 @@ class SSHClient {
     return result;
   }
 
-  // TODO: implement platform methods
   Future<String> sendSignal(String signal) async {
     var result = await _channel.invokeMethod('sendSignal', {
       "id": id,
