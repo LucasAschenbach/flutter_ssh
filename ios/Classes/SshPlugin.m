@@ -73,6 +73,8 @@
     [self disconnectSFTP:args[@"id"]];
   } else if ([@"disconnect" isEqualToString:call.method]) {
     [self disconnect:args[@"id"]];
+  } else if ([@"isConnected" isEqualToString:call.method]) {
+    [self isSessionConnected:args[@"id"] result:result];
   } else {
     result(FlutterMethodNotImplemented);
   }
@@ -458,6 +460,16 @@
   SSHClient* client = [self clientForKey:key];
   if (client && client._session) {
     [client._session disconnect];
+  }
+}
+
+- (void) isSessionConnected:(nonnull NSString*)key
+              result:(FlutterResult)result {
+  SSHClient* client = [self clientForKey:key];
+  if (client && [self isConnected:client._session result:result]) {
+    result(@"true");
+  } else {
+    result(@"false");
   }
 }
 
