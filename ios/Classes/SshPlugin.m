@@ -291,9 +291,9 @@
 }
 
 - (void) sftpRename:(NSString *)oldPath
-           newPath:(NSString *)newPath
-           withKey:(nonnull NSString*)key
-            result:(FlutterResult)result {
+            newPath:(NSString *)newPath
+            withKey:(nonnull NSString*)key
+             result:(FlutterResult)result {
   SSHClient* client = [self clientForKey:key];
   if (client) {
     if ([self isConnected:client._session result:result] &&
