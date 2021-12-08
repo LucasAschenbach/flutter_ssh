@@ -3,6 +3,10 @@ package sq.flutter.ssh;
 import android.util.Log;
 import android.os.Handler;
 import android.os.Looper;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+
+import androidx.annotation.NonNull;
 
 import com.jcraft.jsch.Channel;
 import com.jcraft.jsch.ChannelExec;
@@ -31,6 +35,8 @@ import java.util.Vector;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import io.flutter.embedding.engine.plugins.FlutterPlugin;
+import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.EventChannel;
 import io.flutter.plugin.common.EventChannel.EventSink;
 import io.flutter.plugin.common.EventChannel.StreamHandler;
@@ -38,17 +44,41 @@ import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
-import io.flutter.plugin.common.PluginRegistry.Registrar;
 
 /** SshPlugin */
-public class SshPlugin implements MethodCallHandler, StreamHandler {
+public class SshPlugin implements MethodCallHandler, StreamHandler, FlutterPlugin {
+  private Context applicationContext;
+  private BroadcastReceiver chargingStateChangeReceiver;
+  private MethodChannel methodChannel;
+  private EventChannel eventChannel;
+
   /** Plugin registration. */
-  public static void registerWith(Registrar registrar) {
-    final MethodChannel channel = new MethodChannel(registrar.messenger(), "ssh");
-    final EventChannel eventChannel = new EventChannel(registrar.messenger(), "shell_sftp");
+  @SuppressWarnings("deprecation")
+  public static void registerWith(io.flutter.plugin.common.PluginRegistry.Registrar registrar) {
     final SshPlugin instance = new SshPlugin();
-    channel.setMethodCallHandler(instance);
-    eventChannel.setStreamHandler(instance);
+    instance.onAttachedToEngine(registrar.context(), registrar.messenger());
+  }
+
+  @Override
+  public void onAttachedToEngine(FlutterPluginBinding binding) {
+    onAttachedToEngine(binding.getApplicationContext(), binding.getBinaryMessenger());
+  }
+
+  private void onAttachedToEngine(Context applicationContext, BinaryMessenger messenger) {
+    this.applicationContext = applicationContext;
+    methodChannel = new MethodChannel(messenger, "ssh");
+    eventChannel = new EventChannel(messenger, "shell_sftp");
+    eventChannel.setStreamHandler(this);
+    methodChannel.setMethodCallHandler(this);
+  }
+
+  @Override
+  public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {
+    applicationContext = null;
+    methodChannel.setMethodCallHandler(null);
+    methodChannel = null;
+    eventChannel.setStreamHandler(null);
+    eventChannel = null;
   }
 
   // MethodChannel.Result wrapper that responds on the platform thread.
